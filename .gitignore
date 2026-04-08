@@ -24,3 +24,6 @@ htmlcov/
 TASK.md
 TODO.md
 *.log
+
+subnet_calc_copy.py
+subnet_utils_copy.py

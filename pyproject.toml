@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
 authors = [
-  { name = "Your Name", email = "you@example.com" }
+  { name = "Muhamad Fahmi", email = "muhamadfahmi3240@gmail.com", url = "https://www.linkedin.com/in/muhamad-fahmi-5a0b47271" }
 ]
 keywords = ["subnet", "network", "ipv4", "ipv6", "vlsm", "networking"]
 classifiers = [

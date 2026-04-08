@@ -34,6 +34,8 @@ from subnet_utils import (
     handle_vlsm,
     output_json,
     output_csv,
+    output_table,
+    output_text,
     output_markdown,
     output_pretty,
     get_subnet_data,

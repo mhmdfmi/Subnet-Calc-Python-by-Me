@@ -3,6 +3,7 @@
 ## [0.1.3] - 2026-04-09
 
 - Updated version to 0.1.3 (metadata release)
+- Enhance CLI with input file support and new output formats
 
 ## [0.1.2] - 2026-04-08
 

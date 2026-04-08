@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2] - 2026-04-08
+
+- Added global build/install helper scripts: `build_global.ps1` and `build_global.sh`.
+- Updated packaging documentation and release metadata for version 0.1.2.
+- Ensured `.coverage` is ignored by git and cannot be pushed to the repository.
+- Fixed package metadata version mismatch in `subnet_calc.py`.
+
 ## [0.1.1] - 2026-04-08
 
 - Added extensive unit tests for subnet calculation utilities, VLSM logic, error handling, and edge cases.

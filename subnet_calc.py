@@ -7,7 +7,7 @@ Usage examples:
   python3 subnet_calc.py count --network 2001:db8::/32 --version v6 --count 2
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 import argparse
 import ipaddress

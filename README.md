@@ -1,6 +1,6 @@
 # Subnet Calculator
 
-Version 0.1.1 — Updated April 8, 2026.
+Version 0.1.2 — Updated April 8, 2026.
 
 A lightweight Python CLI and library for IPv4/IPv6 subnetting, VLSM allocation, supernet calculation, overlap detection, and EUI-64 generation.
 
@@ -97,6 +97,27 @@ pip install .
 ```
 
 Once installed, use the `subnet-calc` command.
+
+## Build and install globally
+
+Use the helper scripts in the project root to build the wheel and install the CLI for your current user.
+
+Windows PowerShell:
+
+```powershell
+.\build_global.ps1
+```
+
+macOS / Linux / Git Bash:
+
+```bash
+./build_global.sh
+```
+
+If the `subnet-calc` command is not found after installation, make sure the user scripts directory is in your PATH:
+
+- Windows: `%APPDATA%\Python\PythonXX\Scripts`
+- macOS/Linux: `~/.local/bin`
 
 ### Publishing to PyPI
 

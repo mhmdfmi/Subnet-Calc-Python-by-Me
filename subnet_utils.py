@@ -26,6 +26,13 @@ try:
 except ImportError:
     HAS_RICH = False
 
+try:
+    import openpyxl  # type: ignore[import]
+
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
+
 
 # Custom Exceptions
 class SubnetCalculatorError(Exception):
@@ -239,6 +246,10 @@ def print_subnet_details(
         output_csv([data], output_file)
     elif format_type == "table":
         output_table([data], output_file)
+    elif format_type == "markdown":
+        output_markdown([data], output_file)
+    elif format_type == "pretty":
+        output_pretty([data], output_file)
     else:  # text
         output_text(data, verbose)
 
@@ -364,22 +375,17 @@ def output_csv(
     if not data_list:
         return
 
-    fieldnames = [
-        "index",
-        "name",
-        "network",
-        "version",
-        "class",
-        "netmask",
-        "broadcast",
-        "total_addresses",
-        "usable_hosts",
-        "first_host",
-        "last_host",
-    ]
+    fieldnames = []
+    for row in data_list:
+        for key in row.keys():
+            if key not in fieldnames:
+                fieldnames.append(key)
 
+    if output_file and output_file.lower().endswith(".xlsx"):
+        output_excel(data_list, output_file)
+        return
     if output_file:
-        with open(output_file, "w", newline="") as f:
+        with open(output_file, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(data_list)
@@ -387,6 +393,92 @@ def output_csv(
         writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(data_list)
+
+
+def output_markdown(
+    data_list: List[Dict[str, Any]], output_file: Optional[str] = None
+) -> None:
+    """Output subnet data as Markdown."""
+    if not data_list:
+        return
+
+    fieldnames: List[str] = []
+    for row in data_list:
+        for key in row.keys():
+            if key not in fieldnames:
+                fieldnames.append(key)
+
+    lines: List[str] = []
+    lines.append("| " + " | ".join(fieldnames) + " |")
+    lines.append("| " + " | ".join(["---"] * len(fieldnames)) + " |")
+    for row in data_list:
+        lines.append(
+            "| " + " | ".join(str(row.get(key, "")) for key in fieldnames) + " |"
+        )
+
+    content = "\n".join(lines)
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(content + "\n")
+    else:
+        print(content)
+
+
+def output_pretty(
+    data_list: List[Dict[str, Any]], output_file: Optional[str] = None
+) -> None:
+    """Output subnet data in a rich pretty/table format."""
+    if not data_list:
+        return
+
+    if not HAS_RICH:
+        print("Rich library not available. Install with: pip install rich")
+        output_json(data_list, output_file)
+        return
+
+    fieldnames: List[str] = []
+    for row in data_list:
+        for key in row.keys():
+            if key not in fieldnames:
+                fieldnames.append(key)
+
+    table = Table(show_header=True, header_style="bold magenta")
+    for header in fieldnames:
+        table.add_column(header)
+
+    for row in data_list:
+        table.add_row(*[str(row.get(key, "")) for key in fieldnames])
+
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            Console(file=f, force_terminal=False).print(table)
+    else:
+        Console().print(table)
+
+
+def output_excel(
+    data_list: List[Dict[str, Any]], output_file: str
+) -> None:
+    """Output subnet data as an Excel workbook."""
+    if not HAS_OPENPYXL:
+        raise ImportError(
+            "Excel export requires openpyxl. Install with: pip install openpyxl"
+        )
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+
+    fieldnames: List[str] = []
+    for row in data_list:
+        for key in row.keys():
+            if key not in fieldnames:
+                fieldnames.append(key)
+
+    sheet.append(fieldnames)
+    for row in data_list:
+        sheet.append([row.get(key, "") for key in fieldnames])
+
+    workbook.save(output_file)
 
 
 def calculate_subnets(
@@ -514,6 +606,80 @@ def generate_eui64(mac: str, prefix: str) -> ipaddress.IPv6Address:
     return ipaddress.IPv6Address(full_int)
 
 
+def validate_ip_address(address: str) -> Union[ipaddress.IPv4Address, ipaddress.IPv6Address]:
+    """Validate a single IP address string."""
+    try:
+        return ipaddress.ip_address(address)
+    except ValueError as e:
+        raise InvalidCIDRError(f"Invalid IP address '{address}': {e}")
+
+
+def network_to_range(
+    network: Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
+) -> Tuple[str, str, int]:
+    """Return the first and last usable hosts for a network."""
+    total_hosts = network.num_addresses
+    if isinstance(network, ipaddress.IPv4Network):
+        if total_hosts > 2:
+            first_host = str(network.network_address + 1)
+            last_host = str(network.broadcast_address - 1)
+        else:
+            first_host = str(network.network_address)
+            last_host = str(network.broadcast_address)
+    else:
+        if total_hosts > 1:
+            first_host = str(network.network_address + 1)
+            last_host = str(network.broadcast_address)
+        else:
+            first_host = str(network.network_address)
+            last_host = str(network.network_address)
+    return first_host, last_host, total_hosts
+
+
+def summarize_address_range(
+    start: str, end: str
+) -> List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]]:
+    """Convert an IP address range into the smallest set of CIDR networks."""
+    start_ip = validate_ip_address(start)
+    end_ip = validate_ip_address(end)
+    if type(start_ip) is not type(end_ip):
+        raise MixedIPVersionError("Start and end addresses must be the same IP version")
+    if int(end_ip) < int(start_ip):
+        raise InvalidCIDRError("End address must be greater than or equal to start address")
+    return list(ipaddress.summarize_address_range(start_ip, end_ip))
+
+
+def compare_networks(net1: str, net2: str) -> str:
+    """Compare two CIDR networks and describe their relationship."""
+    network1 = validate_cidr(net1)
+    network2 = validate_cidr(net2)
+    if network1 == network2:
+        return f"Networks are identical: {network1}"
+    if network1.supernet_of(network2):
+        return f"{network1} contains {network2}"
+    if network2.supernet_of(network1):
+        return f"{network2} contains {network1}"
+    if network1.overlaps(network2):
+        return f"Networks overlap: {network1} and {network2}"
+    return f"Networks are distinct: {network1} and {network2}"
+
+
+def expand_ipv6(address: str) -> str:
+    """Expand an IPv6 address to full notation."""
+    ip = validate_ip_address(address)
+    if not isinstance(ip, ipaddress.IPv6Address):
+        raise InvalidCIDRError("Address must be IPv6")
+    return ip.exploded
+
+
+def compress_ipv6(address: str) -> str:
+    """Compress an IPv6 address to shortest notation."""
+    ip = validate_ip_address(address)
+    if not isinstance(ip, ipaddress.IPv6Address):
+        raise InvalidCIDRError("Address must be IPv6")
+    return ip.compressed
+
+
 def find_supernet(
     nets: List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]],
 ) -> Union[ipaddress.IPv4Network, ipaddress.IPv6Network]:
@@ -623,6 +789,10 @@ def handle_vlsm(
         output_csv(subnet_data, output_file)
     elif format_type == "table":
         output_table(subnet_data, output_file)
+    elif format_type == "markdown":
+        output_markdown(subnet_data, output_file)
+    elif format_type == "pretty":
+        output_pretty(subnet_data, output_file)
     else:  # text
         for data in subnet_data:
             output_text(data, verbose)

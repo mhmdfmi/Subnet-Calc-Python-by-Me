@@ -1,6 +1,6 @@
 # Subnet Calculator
 
-Version 0.1.2 — Updated April 8, 2026.
+Version 0.1.3 — Updated April 9, 2026.
 
 A lightweight Python CLI and library for IPv4/IPv6 subnetting, VLSM allocation, supernet calculation, overlap detection, and EUI-64 generation.
 
@@ -37,7 +37,14 @@ subnet-calc count --network 192.168.1.0/24
 subnet-calc count --network 192.168.1.0/24 --count 4
 subnet-calc vlsm --network 10.0.0.0/16 --hosts "servers:500,clients:200"
 subnet-calc supernet --networks "192.168.1.0/24,192.168.2.0/24"
-subnet-calc reverse --hosts "100,50" --version v4
+subnet-calc summarize --networks "192.168.1.0/24,192.168.2.0/24"
+subnet-calc summarize --input networks.txt
+subnet-calc range --network 192.168.1.0/24
+subnet-calc range --start 192.168.1.1 --end 192.168.1.254
+subnet-calc compare --network1 192.168.1.0/24 --network2 192.168.1.0/25
+subnet-calc expand --address 2001:db8::1
+subnet-calc compress --address 2001:0db8:0000:0000:0000:0000:0000:0001
+subnet-calc reverse --hosts "100,50" --ip-version v4
 subnet-calc overlap --networks "192.168.1.0/24,192.168.2.0/24"
 subnet-calc eui64 --mac "00:11:22:33:44:55" --prefix "2001:db8::/64"
 ```
@@ -56,7 +63,12 @@ Use the `--format` option to choose output style:
 subnet-calc --format table count --network 192.168.1.0/24
 subnet-calc --format json --output results.json vlsm --network 10.0.0.0/16 --hosts "500,200"
 subnet-calc --format csv --output subnets.csv count --network 192.168.1.0/24
+subnet-calc --format markdown --output report.md summarize --networks "192.168.1.0/24,192.168.2.0/24"
+subnet-calc --format csv --output report.xlsx summarize --networks "192.168.1.0/24,192.168.2.0/24"
+subnet-calc --format pretty supernet --networks "192.168.1.0/24,192.168.2.0/24"
 ```
+
+If `--output` is omitted for JSON, CSV, or Markdown, the CLI writes results to a default file named `subnet-calc-<command>.<ext>`.
 
 ## Features
 
@@ -66,7 +78,9 @@ subnet-calc --format csv --output subnets.csv count --network 192.168.1.0/24
 - Supernet and overlap detection
 - IPv6 EUI-64 address generation
 - Config-driven scenarios via YAML/JSON
-- Optional formatted table, JSON, and CSV output
+- Input list support from .txt, .csv, .yaml, and .json files
+- Optional formatted table, JSON, CSV, Markdown, and pretty output
+- Excel export support when saving CSV-style reports to .xlsx (requires openpyxl)
 - Automated tests, linting, and CI workflow for quality assurance
 
 ## Sample output

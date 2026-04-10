@@ -382,7 +382,7 @@ def load_input_file(path: str) -> List[str]:
         if "hosts" in content:
             return [str(item).strip() for item in content["hosts"] if item is not None]
 
-        collected_items: List[str] = []
+        # collected_items: List[str] = []
         for value in content.values():
             if isinstance(value, (list, tuple)):
                 collected_items.extend(
